@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#e59a6a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌳</text></svg>">
+<style>*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}</style>
+<title>Root &amp; Bloom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
+<style>
+:root{
+  --ink:#fff6ea; --ink-dim:#e9d5bf;
+  --sky-top:#e59a6a; --sky-mid:#f3b98a; --sky-low:#f7d7a8;
+  --hill:#c98d6c; --hill2:#b07a5e; --grass:#6f9a5a;
+  --soil:#3b2a22; --soil-2:#2f211b; --soil-line:rgba(255,230,200,.06);
+  --bar:#241914; --water:#5fc6ff; --water-deep:#2f8fe0; --leaf:#7cc26a;
+  --body:#1c2b3d;
+  --font:"Baloo 2",ui-rounded,"Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--body:#1c2b3d}}
+:root[data-theme="dark"]{--body:#1c2b3d}
+html,body{height:100%}
+body{background:var(--body);color:var(--ink);font-family:var(--font);overflow:hidden;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+#app{position:relative;height:100%;max-width:460px;margin:0 auto;display:flex;flex-direction:column;
+  background:var(--soil);overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.4)}
+/* ---------- sky ---------- */
+#sky{position:relative;flex:0 0 27%;min-height:170px;
+  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 55%,var(--sky-low) 100%);overflow:hidden}
+#sky .sun{position:absolute;left:50%;bottom:8%;width:120px;height:120px;margin-left:-60px;border-radius:50%;
+  background:radial-gradient(circle,#fff1cf 0%,#ffd99a 45%,rgba(255,210,150,0) 72%)}
+#sky .cloud{position:absolute;height:14px;border-radius:20px;background:rgba(255,236,214,.55)}
+#sky svg.hills{position:absolute;left:0;bottom:0;width:100%;height:55%}
+#hud{position:absolute;inset:0 0 auto 0;display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;z-index:3}
+#hud h1{margin:0;font-size:22px;font-weight:800;letter-spacing:.04em;text-shadow:0 2px 0 rgba(120,60,30,.35)}
+.pill{display:flex;align-items:center;gap:8px}
+.lvl{background:rgba(60,30,20,.45);border-radius:20px;padding:2px 14px;font-weight:700;font-size:16px;
+  font-variant-numeric:tabular-nums}
+.icon-btn{background:none;border:0;color:var(--ink);padding:4px;cursor:pointer;display:grid;place-items:center}
+.icon-btn:focus-visible,.bar button:focus-visible,.cta:focus-visible{outline:3px solid #fff;outline-offset:2px;border-radius:10px}
+#treeWrap{position:absolute;left:50%;bottom:6px;width:52%;max-width:220px;transform:translateX(-50%);z-index:2}
+#treeWrap svg{display:block;width:100%;height:auto;overflow:visible}
+/* ---------- ground strip ---------- */
+#ground{flex:0 0 14px;background:linear-gradient(180deg,#7aa565 0,#5c8a4c 40%,#4a3326 41%,#3b2a22 100%)}
+/* ---------- board ---------- */
+#boardArea{position:relative;flex:1;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 20%,#45322a 0%,var(--soil) 55%,var(--soil-2) 100%)}
+#stones{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#board{position:relative;display:grid;grid-template-columns:repeat(var(--w),var(--cell));
+  grid-template-rows:repeat(var(--h),var(--cell));
+  background-image:linear-gradient(var(--soil-line) 1px,transparent 1px),linear-gradient(90deg,var(--soil-line) 1px,transparent 1px);
+  background-size:var(--cell) var(--cell);border:1px solid var(--soil-line)}
+.tile{position:relative;width:var(--cell);height:var(--cell)}
+.tile.pipe{cursor:pointer}
+.tile .rot{position:absolute;inset:0;transition:transform .2s cubic-bezier(.3,1.4,.5,1)}
+.tile svg{width:100%;height:100%;display:block;overflow:visible}
+.tile.pipe:active .rot{filter:brightness(1.15)}
+.tile .body{transition:stroke .35s}
+.tile .water{opacity:0;transition:opacity .35s}
+.tile.wet .water{opacity:1}
+.tile.wet .body{stroke:#8fd3f7}
+.tile.wet .glow{opacity:1}
+.tile .glow{opacity:0;transition:opacity .35s}
+.tile.hint .rot{animation:hint .9s ease 2}
+@keyframes hint{50%{filter:drop-shadow(0 0 10px #fff6a0) brightness(1.3)}}
+.tile.src .drop{animation:bob 2.2s ease-in-out infinite;transform-origin:50% 60%;transform-box:view-box}
+@keyframes bob{50%{transform:translateY(-3px) scale(1.04)}}
+.tile.pulse .rot{animation:pulse .5s ease}
+@keyframes pulse{50%{filter:brightness(1.6) drop-shadow(0 0 8px var(--water))}}
+.rootcore{stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset .5s ease}
+.tile.flow .rootcore{stroke-dashoffset:0}
+/* ---------- bottom bar ---------- */
+.bar{flex:0 0 auto;display:flex;justify-content:space-around;background:var(--bar);
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.06)}
+.bar button{background:none;border:0;color:var(--ink);font:700 14px var(--font);letter-spacing:.06em;
+  display:flex;flex-direction:column;align-items:center;gap:0;padding:4px 10px;cursor:pointer;min-width:86px}
+.bar button:active{transform:scale(.94)}
+.bar button[disabled]{opacity:.35}
+.bar small{font-size:11px;color:var(--ink-dim);font-weight:500;letter-spacing:0}
+.moves{position:absolute;left:12px;bottom:8px;font-size:13px;color:var(--ink-dim);font-variant-numeric:tabular-nums;z-index:2}
+.goal{position:absolute;right:12px;bottom:8px;font-size:13px;color:var(--ink-dim);z-index:2}
+/* ---------- win overlay ---------- */
+#win{position:absolute;inset:0;z-index:20;pointer-events:none;overflow:hidden}
+#win.on{pointer-events:auto}
+#win .shade{position:absolute;inset:0;opacity:0;transition:opacity .7s;
+  background:radial-gradient(circle at 50% 42%,rgba(255,230,160,.55) 0%,rgba(40,70,50,.75) 45%,rgba(10,20,20,.92) 100%)}
+#win.on .shade{opacity:1}
+#win .rays{position:absolute;left:50%;top:40%;width:780px;height:780px;margin:-390px 0 0 -390px;opacity:0;
+  background:repeating-conic-gradient(rgba(255,244,200,.22) 0 8deg,rgba(255,244,200,0) 8deg 22deg);
+  -webkit-mask:radial-gradient(circle,#000 10%,transparent 62%);mask:radial-gradient(circle,#000 10%,transparent 62%);
+  transition:opacity 1s .5s}
+#win.on .rays{opacity:1;animation:spin 24s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#win .fly{position:absolute;transform-origin:0 0}
+#win .fly svg{width:100%;height:auto;display:block;overflow:visible}
+#win .msg{position:absolute;left:0;right:0;bottom:9%;text-align:center;opacity:0;transform:translateY(20px);
+  transition:opacity .5s,transform .5s cubic-bezier(.3,1.5,.5,1)}
+#win.show .msg{opacity:1;transform:none}
+#win .msg h2{margin:0 16px;font-size:36px;text-wrap:balance;font-weight:800;line-height:1;color:#fff;text-shadow:0 3px 0 #2e6b3a,0 0 24px rgba(160,255,160,.5)}
+#win .msg p{margin:6px 0 14px;color:#e6f4df;font-size:16px}
+.stars{display:flex;justify-content:center;gap:8px;margin:10px 0 4px}
+.stars span{font-size:38px;line-height:1;color:rgba(255,255,255,.2);transform:scale(0);transition:transform .45s cubic-bezier(.3,1.8,.5,1)}
+.stars span.on{color:#ffd54a;text-shadow:0 0 14px rgba(255,210,80,.8)}
+#win.show .stars span{transform:scale(1)}
+#win.show .stars span:nth-child(2){transition-delay:.15s}
+#win.show .stars span:nth-child(3){transition-delay:.3s}
+.cta{pointer-events:auto;font:800 20px var(--font);color:#1f3d1c;background:linear-gradient(#b8f08e,#6fc257);
+  border:0;border-radius:40px;padding:10px 38px;box-shadow:0 5px 0 #3f7d33,0 10px 24px rgba(0,0,0,.35);cursor:pointer}
+.cta:active{transform:translateY(3px);box-shadow:0 2px 0 #3f7d33}
+.fall{position:absolute;top:-20px;width:14px;height:9px;border-radius:0 100% 0 100%;background:var(--leaf);
+  animation:fall linear forwards}
+@keyframes fall{to{transform:translate(var(--dx),110vh) rotate(var(--r))}}
+.spark{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff6c0;box-shadow:0 0 10px #fff2a0;
+  animation:spark 1s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+/* tree bloom states (shared by both copies) */
+.tree .br{stroke:#5b4a40;transition:stroke 1.2s}
+.tree .vein{stroke:var(--water);stroke-dasharray:300;stroke-dashoffset:300;opacity:.95;filter:drop-shadow(0 0 3px #9be0ff)}
+.tree .lf{transform:scale(0);transform-box:fill-box;transform-origin:center;transition:transform .5s cubic-bezier(.3,1.7,.5,1)}
+.tree.bloom .br{stroke:#6e4a2e}
+.tree.bloom .vein{animation:vein 1s ease forwards}
+@keyframes vein{to{stroke-dashoffset:0}}
+.tree.bloom .lf{transform:scale(1);transition-delay:var(--d)}
+.tree .tip{fill:#9be08a;opacity:.0}
+.tree.hint-green .tip{opacity:1}
+/* settings */
+[hidden]{display:none!important}
+#menu{position:absolute;right:10px;top:48px;z-index:30;background:#2b1f19;border-radius:14px;padding:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:4px;min-width:180px}
+#menu button{background:none;border:0;color:var(--ink);font:600 15px var(--font);text-align:left;padding:6px 10px;border-radius:8px;cursor:pointer}
+#menu button:hover{background:rgba(255,255,255,.07)}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sky">
+    <div class="sun"></div>
+    <div class="cloud" style="left:8%;top:30%;width:70px"></div>
+    <div class="cloud" style="left:70%;top:22%;width:90px"></div>
+    <div class="cloud" style="left:58%;top:40%;width:40px"></div>
+    <svg class="hills" viewBox="0 0 400 100" preserveAspectRatio="none">
+      <path d="M0 60 Q70 20 150 50 T300 40 T400 45 V100 H0Z" fill="var(--hill)"/>
+      <path d="M0 80 Q90 50 200 72 T400 62 V100 H0Z" fill="var(--hill2)"/>
+    </svg>
+    <div id="hud">
+      <h1>ROOT &amp; BLOOM</h1>
+      <div class="pill">
+        <div class="lvl" id="lvl">Seviye 1</div>
+        <button class="icon-btn" id="gear" aria-label="Ayarlar">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7 7 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7 7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7 7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="treeWrap"></div>
+  </div>
+  <div id="ground"></div>
+  <div id="boardArea">
+    <svg id="stones"></svg>
+    <div id="board"></div>
+    <div class="moves" id="moves">Hamle: 0</div>
+    <div class="goal" id="goal"></div>
+  </div>
+  <div class="bar">
+    <button id="bHint"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2zM9 20h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>İPUCU<small id="hintLeft">3 hak</small></button>
+    <button id="bUndo"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6h6"/><path d="M4.5 10A8 8 0 1 1 6 17"/></svg>GERİ AL<small>&nbsp;</small></button>
+    <button id="bReset"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v6h-6"/><path d="M19.5 10A8 8 0 1 0 18 17"/></svg>YENİDEN BAŞLA<small>&nbsp;</small></button>
+  </div>
+  <div id="menu" hidden>
+    <button id="mSound">Ses: Açık</button>
+    <button id="mPrev">◀ Önceki seviye</button>
+    <button id="mNext">Sonraki seviye ▶</button>
+  </div>
+  <div id="win">
+    <div class="shade"></div>
+    <div class="rays"></div>
+    <div class="msg">
+      <h2 id="winTitle">Ağaç Yeşerdi!</h2>
+      <div class="stars"><span>★</span><span>★</span><span>★</span></div>
+      <p id="winSub">Su köklere ulaştı</p>
+      <button class="cta" id="bNext">Devam</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const U=1,R=2,D=4,L=8;
+const DIRS=[{dx:0,dy:-1,b:U,o:D},{dx:1,dy:0,b:R,o:L},{dx:0,dy:1,b:D,o:U},{dx:-1,dy:0,b:L,o:R}];
+const rotm=(m,n)=>{n=((n%4)+4)%4;for(let i=0;i<n;i++)m=((m<<1)|(m>>3))&15;return m};
+const deg=m=>(m&1)+(m>>1&1)+(m>>2&1)+(m>>3&1);
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+const COLORS=[["#f4a582","#b8664a","#ffd6c2"],["#f29bb0","#b35a70","#ffcbd8"],["#f5cf6b","#b38c2e","#fff0b8"],
+  ["#93d6ac","#4f9670","#cdf2da"],["#c4a6e8","#8466ad","#e8dbf8"]];
+
+/* ---------------- level generation ---------------- */
+function config(n){
+  if(n<=2) return {W:5,H:6,S:1};
+  if(n<=5) return {W:5,H:7,S:2};
+  if(n<=10) return {W:7,H:7,S:n<8?2:3};
+  if(n<=18) return {W:7,H:8,S:3};
+  return {W:7,H:9,S:4};
+}
+function generate(n){
+  const {W,H,S}=config(n), r=rng(n*9973+17);
+  const rc=W>>1, rr=Math.floor((H-1)/2);
+  const idx=(x,y)=>y*W+x, inside=(x,y)=>x>=0&&y>=0&&x<W&&y<H;
+  const blocked=(x,y)=>x===rc&&y<rr;
+  const tree=new Array(W*H).fill(0), seen=new Array(W*H).fill(false), parent=new Array(W*H).fill(-1);
+  const list=[[rc,rr]]; seen[idx(rc,rr)]=true;
+  while(list.length){
+    const i=r()<0.75?list.length-1:Math.floor(r()*list.length);
+    const [x,y]=list[i];
+    const opts=DIRS.filter(d=>{const nx=x+d.dx,ny=y+d.dy;return inside(nx,ny)&&!blocked(nx,ny)&&!seen[idx(nx,ny)]});
+    if(!opts.length){list.splice(i,1);continue}
+    const d=opts[Math.floor(r()*opts.length)], nx=x+d.dx, ny=y+d.dy;
+    tree[idx(x,y)]|=d.b; tree[idx(nx,ny)]|=d.o; seen[idx(nx,ny)]=true; parent[idx(nx,ny)]=idx(x,y);
+    list.push([nx,ny]);
+  }
+  const leaves=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(blocked(x,y)||(x===rc&&y===rr))continue;
+    if(deg(tree[idx(x,y)])===1)leaves.push([x,y]);
+  }
+  const corners=[[0,H-1],[W-1,H-1],[W-1,0],[0,0]];
+  const cOrder=r()<.5?[0,1,2,3]:[1,0,3,2];
+  const sources=[];
+  for(let k=0;k<S;k++){
+    const [cx,cy]=corners[cOrder[k]];
+    let best=null,bd=1e9;
+    for(const l of leaves){
+      if(sources.some(s=>s[0]===l[0]&&s[1]===l[1]))continue;
+      const dd=Math.abs(l[0]-cx)+Math.abs(l[1]-cy)+r()*.5;
+      if(dd<bd){bd=dd;best=l}
+    }
+    if(best)sources.push(best);
+  }
+  const onPath=new Array(W*H).fill(false);
+  for(const [x,y] of sources){let i=idx(x,y);while(i>=0){onPath[i]=true;i=parent[i]}}
+  const tiles=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=idx(x,y);
+    if(blocked(x,y)){tiles.push({kind:'block',x,y,base:U|D,rot:0});continue}
+    let sol=0;
+    if(onPath[i])for(const d of DIRS){const nx=x+d.dx,ny=y+d.dy;
+      if(inside(nx,ny)&&onPath[idx(nx,ny)]&&(tree[i]&d.b))sol|=d.b}
+    const col=COLORS[Math.floor(r()*COLORS.length)];
+    if(x===rc&&y===rr){tiles.push({kind:'root',x,y,base:sol|U,rot:0,sol:sol|U});continue}
+    if(sources.some(s=>s[0]===x&&s[1]===y)){tiles.push({kind:'src',x,y,base:sol,rot:0,sol,col});continue}
+    if(onPath[i]){
+      tiles.push({kind:'pipe',x,y,base:sol,rot:Math.floor(r()*4),sol,col});
+    }else{
+      const pool=[5,5,3,3,3,7,3,5];
+      let b=r()<.07?0:pool[Math.floor(r()*pool.length)];
+      if(b===0)tiles.push({kind:'empty',x,y,base:0,rot:0});
+      else tiles.push({kind:'pipe',x,y,base:b,rot:Math.floor(r()*4),sol:null,col});
+    }
+  }
+  const lv={n,W,H,rc,rr,tiles,sources};
+  // make sure it doesn't start solved and most path tiles are off
+  let guard=0;
+  while(solved(lv)&&guard++<50){
+    const p=tiles.filter(t=>t.kind==='pipe'&&t.sol!=null&&t.sol!==15);
+    const t=p[Math.floor(r()*p.length)]; t.rot+=1;
+  }
+  lv.start=tiles.map(t=>t.rot);
+  lv.par=tiles.reduce((a,t)=>{
+    if(t.kind!=='pipe'||t.sol==null)return a;
+    for(let k=0;k<4;k++)if(rotm(t.base,t.rot+k)===t.sol)return a+k;return a},0);
+  return lv;
+}
+const cur=t=>rotm(t.base,t.rot);
+function flood(lv,starts){
+  const {W,H,tiles}=lv, got=new Set(starts), q=[...starts];
+  while(q.length){
+    const i=q.shift(), t=tiles[i], m=cur(t), x=i%W, y=(i/W)|0;
+    for(const d of DIRS){
+      if(!(m&d.b))continue;
+      const nx=x+d.dx, ny=y+d.dy; if(nx<0||ny<0||nx>=W||ny>=H)continue;
+      const j=ny*W+nx, u=tiles[j]; if(u.kind==='block'||got.has(j))continue;
+      if(cur(u)&d.o){got.add(j);q.push(j)}
+    }
+  }
+  return got;
+}
+function solved(lv){
+  const g=flood(lv,[lv.rr*lv.W+lv.rc]);
+  return lv.sources.every(([x,y])=>g.has(y*lv.W+x));
+}
+
+/* ---------------- drawing ---------------- */
+const ARM={1:"M50 50L50 -2",2:"M50 50L102 50",4:"M50 50L50 102",8:"M50 50L-2 50"};
+const ELB={3:"M50 -2L50 0A50 50 0 0 0 100 50L102 50",6:"M102 50L100 50A50 50 0 0 0 50 100L50 102",
+  12:"M50 102L50 100A50 50 0 0 0 0 50L-2 50",9:"M-2 50L0 50A50 50 0 0 0 50 0L50 -2"};
+function pathFor(m){
+  if(ELB[m])return ELB[m];
+  return [1,2,4,8].filter(b=>m&b).map(b=>ARM[b]).join("");
+}
+function flanges(m,c){
+  let s="";[1,2,4,8].forEach((b,i)=>{if(m&b)s+=`<g transform="rotate(${i*90} 50 50)"><rect x="29" y="-1" width="42" height="11" rx="3" fill="${c}"/><rect x="29" y="-1" width="42" height="3" rx="1.5" fill="rgba(255,255,255,.18)"/></g>`});
+  return s;
+}
+function pipeSVG(m,col,extra=""){
+  if(!m)return "";
+  const d=pathFor(m), hub=deg(m)>2||(deg(m)===1)?`<circle cx="50" cy="50" r="15" fill="${col[0]}" stroke="${col[1]}" stroke-width="3"/>`:"";
+  return `<svg viewBox="0 0 100 100">
+    <path d="${d}" stroke="rgba(0,0,0,.35)" stroke-width="34" fill="none" stroke-linecap="butt" transform="translate(2 3)"/>
+    <path class="glow" d="${d}" stroke="${'#5fc6ff'}" stroke-width="40" fill="none" opacity="0" style="filter:blur(6px)"/>
+    <path d="${d}" stroke="${col[1]}" stroke-width="32" fill="none"/>
+    <path class="body" d="${d}" stroke="${col[0]}" stroke-width="25" fill="none"/>
+    <path d="${d}" stroke="${col[2]}" stroke-width="5" fill="none" opacity=".7" transform="translate(-4 -4)" stroke-dasharray="1000"/>
+    <path class="water" d="${d}" stroke="#5fc6ff" stroke-width="13" fill="none"/>
+    <path class="water" d="${d}" stroke="#d6f3ff" stroke-width="4" fill="none" stroke-dasharray="6 14"><animate attributeName="stroke-dashoffset" from="40" to="0" dur=".8s" repeatCount="indefinite"/></path>
+    ${hub}${flanges(m,col[1])}${extra}</svg>`;
+}
+function srcSVG(m,col){
+  return `<svg viewBox="0 0 100 100">
+    ${pipeSVG(m,col).replace(/^<svg[^>]*>|<\/svg>$/g,"")}
+    <circle cx="50" cy="52" r="34" fill="#5fc6ff" opacity=".25" style="filter:blur(6px)"/>
+    <g class="drop">
+      <path d="M50 14C50 14 26 44 26 60a24 24 0 0 0 48 0C74 44 50 14 50 14Z" fill="url(#dg)" stroke="#bfeaff" stroke-width="2.5"/>
+      <ellipse cx="41" cy="56" rx="5" ry="9" fill="#fff" opacity=".7" transform="rotate(20 41 56)"/>
+    </g></svg>`;
+}
+function rootSVG(m){
+  const low=m&~U;
+  const stub=low?pipeSVG(low,["#8a6b55","#4e3a2e","#b8977e"]).replace(/^<svg[^>]*>|<\/svg>$/g,""):"";
+  return `<svg viewBox="0 0 100 100">${stub}
+    <path d="M50 -2 C44 20 40 34 50 50" stroke="#3a2419" stroke-width="30" fill="none" stroke-linecap="round"/>
+    <path d="M50 -2 C44 20 40 34 50 50" stroke="#7b5238" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <path class="rootcore" d="M50 50 C40 34 44 20 50 -2" stroke="#5fc6ff" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <circle cx="50" cy="52" r="22" fill="#6b4630" stroke="#3a2419" stroke-width="4"/>
+    <circle cx="50" cy="52" r="13" fill="#2a1a12"/>
+    <circle class="water" cx="50" cy="52" r="11" fill="#5fc6ff"/>
+    <path d="M38 40 q-10 -4 -14 -12 M62 38 q9 -2 14 -10" stroke="#6b4630" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function blockSVG(y){
+  const w=26-y*1.5;
+  return `<svg viewBox="0 0 100 100">
+    <path d="M50 -2 C${y%2?56:44} 30 ${y%2?44:56} 70 50 102" stroke="#3a2419" stroke-width="${w+8}" fill="none"/>
+    <path d="M50 -2 C${y%2?56:44} 30 ${y%2?44:56} 70 50 102" stroke="#7b5238" stroke-width="${w}" fill="none"/>
+    <path d="M50 -2 C${y%2?56:44} 30 ${y%2?44:56} 70 50 102" stroke="#9a6c4c" stroke-width="3" fill="none" transform="translate(-5 0)"/>
+    <path d="M${y%2?60:40} 40 q${y%2?18:-18} 6 ${y%2?26:-26} 22" stroke="#5a3a28" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path class="rootcore" d="M50 102 C${y%2?44:56} 70 ${y%2?56:44} 30 50 -2" stroke="#5fc6ff" stroke-width="7" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* tree: fractal, species rotates per level */
+const SPECIES=[
+ {name:"Kiraz Ağacı",leaves:["#8fd67a","#6fbf64","#b5e28a"],leafN:2,deco:"flower",petal:"#ffb8cc",petal2:"#ffd6e2",center:"#ffe27a",rate:.8,fs:3.4,spread:.72,len:.72},
+ {name:"Elma Ağacı",leaves:["#7cc26a","#5fae57","#9bd67a","#4f9a4c"],leafN:4,deco:"fruit",fruit:"#ef5a5a",rate:.45,spread:.8,len:.7},
+ {name:"Mor Salkım",leaves:["#9bd67a","#7cc26a"],leafN:2,deco:"hang",hang:["#b98ae0","#9d6fd0","#d3b5f0"],rate:.75,spread:.9,len:.7,droop:.1},
+ {name:"Portakal Ağacı",leaves:["#4f9a4c","#5fae57","#3f8a45","#6bb85f"],leafN:4,deco:"fruit",fruit:"#ffa53a",rate:.5,spread:.95,len:.66},
+ {name:"Akçaağaç",leaves:["#f28c38","#e8553a","#f7c548","#d9442f","#f5a24b"],leafN:4,deco:"none",shape:"maple",spread:.78,len:.72},
+ {name:"Söğüt",leaves:["#a8d86a","#8cc85a","#bfe38a"],leafN:1,deco:"willow",rate:1,spread:.85,len:.7,droop:.22},
+ {name:"Manolya",leaves:["#6fae5f","#8cc875"],leafN:1,deco:"flower",petal:"#fff4f7",petal2:"#f5b3cc",center:"#f7d36a",rate:.7,fs:5.2,spread:.66,len:.74},
+ {name:"Mimoza",leaves:["#8fc47a","#a9d68f","#7ab86a"],leafN:2,deco:"puff",puff:["#ffd83d","#ffe57a"],rate:.85,spread:.92,len:.68},
+ {name:"Limon Ağacı",leaves:["#5fae57","#7cc26a","#4f9a4c"],leafN:4,deco:"fruit",fruit:"#f6df45",rate:.45,spread:.85,len:.68,oval:true},
+ {name:"Lavanta Jakarandası",leaves:["#8cc875","#6fae5f"],leafN:2,deco:"flower",petal:"#a98be8",petal2:"#c9b3f5",center:"#f3e3ff",rate:.9,fs:3,spread:.95,len:.66},
+];
+const speciesFor=n=>SPECIES[(n-1)%SPECIES.length];
+function treeSVG(seed){
+  const sp=speciesFor(seed), r=rng(seed*31+5); let br="",lf="",deco="",tips=[],vein="";
+  const f1=v=>v.toFixed(1);
+  function grow(x,y,a,len,w,dep,main){
+    const x2=x+Math.cos(a)*len, y2=y+Math.sin(a)*len;
+    const mx=(x+x2)/2+(r()-.5)*len*.25, my=(y+y2)/2+(r()-.5)*len*.15;
+    const d=`M${f1(x)} ${f1(y)}Q${f1(mx)} ${f1(my)} ${f1(x2)} ${f1(y2)}`;
+    br+=`<path class="br" d="${d}" stroke-width="${f1(w)}"/>`;
+    if(main)vein+=vein?d.replace(/^M/,"L"):d;
+    if(dep>=2){tips.push([x2,y2,dep]); if(r()<.6)tips.push([mx,my,dep])}
+    if(dep>=5)return;
+    const n=dep<2?2:(r()<.35?3:2);
+    for(let i=0;i<n;i++){
+      const spread=dep===0?.55:sp.spread;
+      let na=a+(n===1?0:(i/(n-1)-.5)*spread*2)+(r()-.5)*.35;
+      if(sp.droop&&dep>=1)na+=(Math.cos(na)>=0?1:-1)*sp.droop*dep;
+      grow(x2,y2,na,len*(sp.len+r()*.12),w*.66,dep+1,main&&i===0&&dep<2);
+    }
+  }
+  grow(100,172,-Math.PI/2+(r()-.5)*.1,50,13,0,true);
+  let k=0;
+  const pick=a=>a[Math.floor(r()*a.length)];
+  for(const [x,y,dep] of tips){
+    const c=sp.leafN+(dep>3?0:1);
+    for(let j=0;j<c;j++){
+      const px=x+(r()-.5)*22, py=y+(r()-.5)*18, s=6+r()*6, rot=r()*180;
+      const dl=(.35+Math.hypot(px-100,py-170)/260+r()*.25).toFixed(2), col=sp.leaves[k++%sp.leaves.length];
+      if(sp.shape==="maple"){
+        let pts="";for(let q=0;q<10;q++){const rr=q%2?s*.45:s,an=q*Math.PI/5+rot;pts+=`${f1(px+Math.cos(an)*rr)},${f1(py+Math.sin(an)*rr)} `}
+        lf+=`<polygon class="lf" style="--d:${dl}s" points="${pts}" fill="${col}"/>`;
+      }else lf+=`<ellipse class="lf" style="--d:${dl}s" cx="${f1(px)}" cy="${f1(py)}" rx="${f1(s)}" ry="${f1(s*.62)}" transform="rotate(${rot.toFixed(0)} ${f1(px)} ${f1(py)})" fill="${col}"/>`;
+    }
+    if(sp.deco==="none"||r()>sp.rate*(dep>=3?1:.4))continue;
+    const dl=(1.05+r()*.6).toFixed(2), ox=x+(r()-.5)*14, oy=y+(r()-.5)*10;
+    let g="";
+    if(sp.deco==="flower"){
+      const fs=sp.fs*(.85+r()*.3);
+      g=[0,72,144,216,288].map((a,q)=>{const an=a*Math.PI/180+r()*.3;
+        return `<ellipse cx="${f1(ox+Math.cos(an)*fs)}" cy="${f1(oy+Math.sin(an)*fs)}" rx="${f1(fs*.9)}" ry="${f1(fs*.7)}" transform="rotate(${(a).toFixed(0)} ${f1(ox+Math.cos(an)*fs)} ${f1(oy+Math.sin(an)*fs)})" fill="${q%2?sp.petal2:sp.petal}"/>`}).join("")
+        +`<circle cx="${f1(ox)}" cy="${f1(oy)}" r="${f1(fs*.55)}" fill="${sp.center}"/>`;
+    }else if(sp.deco==="fruit"){
+      const fr=4.2+r()*1.2;
+      g=`<path d="M${f1(ox)} ${f1(oy-fr)} l1.5 -3.5" stroke="#5b3b25" stroke-width="1.4"/>
+        <ellipse cx="${f1(ox+3)}" cy="${f1(oy-fr-3)}" rx="2.6" ry="1.4" fill="#5fae57" transform="rotate(-25 ${f1(ox+3)} ${f1(oy-fr-3)})"/>
+        <ellipse cx="${f1(ox)}" cy="${f1(oy)}" rx="${f1(sp.oval?fr*1.2:fr)}" ry="${f1(fr)}" fill="${sp.fruit}" stroke="rgba(0,0,0,.18)" stroke-width="1"/>
+        <circle cx="${f1(ox-fr*.35)}" cy="${f1(oy-fr*.35)}" r="${f1(fr*.28)}" fill="#fff" opacity=".7"/>`;
+    }else if(sp.deco==="hang"){
+      for(let q=0;q<6;q++)g+=`<ellipse cx="${f1(ox+Math.sin(q*1.3)*1.6)}" cy="${f1(oy+3+q*4.3)}" rx="${f1(3.8-q*.45)}" ry="${f1(3-q*.3)}" fill="${sp.hang[q%3]}"/>`;
+    }else if(sp.deco==="willow"){
+      const L=18+r()*26, bend=(r()-.5)*10;
+      g=`<path d="M${f1(ox)} ${f1(oy)}q${f1(bend)} ${f1(L/2)} ${f1(bend*.4)} ${f1(L)}" stroke="#8cc85a" stroke-width="1.6" fill="none"/>`;
+      for(let q=1;q<6;q++){const t=q/6;g+=`<ellipse cx="${f1(ox+bend*t*(1.4-t))}" cy="${f1(oy+L*t)}" rx="1.6" ry="3.6" fill="${sp.leaves[q%sp.leaves.length]}" transform="rotate(${q%2?25:-25} ${f1(ox+bend*t*(1.4-t))} ${f1(oy+L*t)})"/>`}
+    }else if(sp.deco==="puff"){
+      for(let q=0;q<4;q++)g+=`<circle cx="${f1(ox+(r()-.5)*8)}" cy="${f1(oy+(r()-.5)*7)}" r="${f1(2.2+r()*1.4)}" fill="${sp.puff[q%2]}"/>`;
+    }
+    deco+=`<g class="lf" style="--d:${dl}s">${g}</g>`;
+  }
+  const budC=sp.deco==="flower"?sp.petal:sp.deco==="hang"?sp.hang[0]:sp.leaves[0];
+  const buds=tips.slice(0,4).map(([x,y])=>`<circle cx="${f1(x)}" cy="${f1(y)}" r="3.2" fill="${budC}" opacity=".85"/>`).join("");
+  return `<svg class="tree" viewBox="0 0 200 180">
+    <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8e6ff"/><stop offset="1" stop-color="#2f8fe0"/></linearGradient></defs>
+    <ellipse cx="100" cy="174" rx="46" ry="6" fill="rgba(60,40,20,.3)"/>
+    <g fill="none" stroke-linecap="round">${br}</g>
+    <path d="M86 176 q-10 2 -20 0 M114 176 q10 3 22 0 M96 176 q-2 5 -8 8 M104 176 q3 5 9 8" stroke="#5b4a40" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path class="vein" d="${vein}" fill="none" stroke-width="3.2" stroke-linecap="round"/>
+    ${buds}
+    <g>${lf}</g><g>${deco}</g>
+    <path d="M60 176 l4 -8 l2 8 M140 176 l3 -7 l3 7" stroke="#6f9a5a" stroke-width="2.5" fill="none"/>
+  </svg>`;
+}
+
+/* ---------------- sound ---------------- */
+let ac=null, soundOn=store.get("kvs-sound",true);
+function tone(f,t=.08,type="sine",v=.08,delay=0){
+  if(!soundOn)return;
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain(),s=ac.currentTime+delay;
+    o.type=type;o.frequency.setValueAtTime(f,s);g.gain.setValueAtTime(v,s);g.gain.exponentialRampToValueAtTime(.0001,s+t);
+    o.connect(g).connect(ac.destination);o.start(s);o.stop(s+t+.02)}catch(e){}
+}
+const sClick=()=>tone(420+Math.random()*60,.06,"triangle",.06);
+const sBlub=()=>{tone(300,.12,"sine",.07);tone(520,.1,"sine",.05,.06)};
+const sWin=()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,.5,"triangle",.07,i*.12));
+
+/* ---------------- game state ---------------- */
+const $=s=>document.querySelector(s);
+const board=$("#board"), area=$("#boardArea");
+let lv, els=[], history=[], moves=0, hints=3, busy=false, lastWet=new Set();
+let level=store.get("kvs-level",1);
+
+function stones(){
+  const s=$("#stones"), r=rng(level*7+3), w=area.clientWidth, h=area.clientHeight;
+  s.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  let out="";
+  for(let i=0;i<34;i++){
+    const x=r()*w,y=r()*h,rx=3+r()*9;
+    out+=`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${rx*.65}" fill="${["#5a463c","#4d3a31","#6b574b"][i%3]}" opacity=".7"/>`;
+  }
+  for(let i=0;i<6;i++){
+    const x=r()*w,y=r()*h;
+    out+=`<path d="M${x} ${y} q8 10 4 22 m-4 -12 q-8 2 -12 9" stroke="#5b4332" stroke-width="2" fill="none" opacity=".6"/>`;
+  }
+  s.innerHTML=out;
+}
+function layout(){
+  const aw=area.clientWidth-20, ah=area.clientHeight-40;
+  const c=Math.floor(Math.min(aw/lv.W, ah/lv.H, 78));
+  board.style.setProperty("--cell",c+"px");
+  board.style.setProperty("--w",lv.W);board.style.setProperty("--h",lv.H);
+  stones();
+}
+function load(n){
+  level=n; store.set("kvs-level",n);
+  lv=generate(n); history=[]; moves=0; hints=3; busy=false; lastWet=new Set();
+  $("#lvl").textContent="Seviye "+n;
+  $("#goal").title=speciesFor(n).name;
+  $("#treeWrap").innerHTML=treeSVG(n);
+  $("#goal").textContent=lv.sources.length>1?`${lv.sources.length} kaynağı bağla`:"Kaynağı bağla";
+  board.innerHTML=""; els=[];
+  lv.tiles.forEach((t,i)=>{
+    const el=document.createElement("div");
+    el.className="tile "+t.kind;
+    let inner="";
+    if(t.kind==="pipe")inner=pipeSVG(t.base,t.col);
+    else if(t.kind==="src")inner=srcSVG(t.base,t.col);
+    else if(t.kind==="root")inner=rootSVG(t.base);
+    else if(t.kind==="block")inner=blockSVG(t.y);
+    el.innerHTML=`<div class="rot">${inner}</div>`;
+    if(t.kind==="pipe"){
+      el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Boruyu çevir");
+      el.addEventListener("pointerdown",e=>{e.preventDefault();turn(i,1,true)});
+      el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();turn(i,1,true)}});
+    }
+    board.appendChild(el); els.push(el);
+  });
+  layout(); paint(true); refresh();
+}
+function paint(instant){
+  lv.tiles.forEach((t,i)=>{
+    const r=els[i].firstChild;
+    if(instant)r.style.transition="none";
+    r.style.transform=`rotate(${t.rot*90}deg)`;
+    if(instant){r.offsetWidth;r.style.transition=""}
+  });
+  // water: from sources
+  const W=lv.W, wet=flood(lv,lv.sources.map(([x,y])=>y*W+x));
+  let grew=false;
+  els.forEach((el,i)=>{const w=wet.has(i);if(w&&!lastWet.has(i))grew=true;el.classList.toggle("wet",w)});
+  if(grew&&!instant)sBlub();
+  lastWet=wet;
+}
+function refresh(){
+  $("#moves").textContent="Hamle: "+moves;
+  $("#hintLeft").textContent=hints+" hak";
+  $("#bHint").disabled=hints<=0||busy;
+  $("#bUndo").disabled=!history.length||busy;
+}
+function turn(i,dir,record){
+  if(busy)return;
+  const t=lv.tiles[i]; t.rot+=dir;
+  if(record){history.push(i);moves++;sClick()}
+  paint(false); refresh();
+  if(solved(lv))win();
+}
+$("#bUndo").onclick=()=>{if(busy||!history.length)return;const i=history.pop();lv.tiles[i].rot-=1;moves=Math.max(0,moves-1);sClick();paint(false);refresh()};
+$("#bReset").onclick=()=>{if(busy)return;lv.tiles.forEach((t,i)=>t.rot=lv.start[i]);history=[];moves=0;paint(false);refresh()};
+$("#bHint").onclick=()=>{
+  if(busy||hints<=0)return;
+  const wrong=lv.tiles.map((t,i)=>[t,i]).filter(([t])=>t.kind==="pipe"&&t.sol!=null&&cur(t)!==t.sol);
+  if(!wrong.length)return;
+  // prefer one touching the water
+  wrong.sort((a,b)=>(lastWet.has(b[1])?1:0)-(lastWet.has(a[1])?1:0));
+  const [t,i]=wrong[0];
+  let k=1;while(rotm(t.base,t.rot+k)!==t.sol)k++;
+  t.rot+=k; moves++; hints--;
+  els[i].classList.remove("hint");void els[i].offsetWidth;els[i].classList.add("hint");
+  tone(880,.2,"sine",.06);
+  paint(false);refresh();
+  if(solved(lv))win();
+};
+
+/* ---------------- win sequence ---------------- */
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function win(){
+  busy=true; refresh();
+  const W=lv.W, rootI=lv.rr*W+lv.rc;
+  // 1) pulse from sources toward root by BFS distance
+  const dist=new Map(), q=[];
+  lv.sources.forEach(([x,y])=>{const i=y*W+x;dist.set(i,0);q.push(i)});
+  const g=flood(lv,[rootI]);
+  while(q.length){const i=q.shift(),x=i%W,y=(i/W)|0,m=cur(lv.tiles[i]);
+    for(const d of DIRS){if(!(m&d.b))continue;const j=(y+d.dy)*W+(x+d.dx);
+      if(g.has(j)&&!dist.has(j)&&y+d.dy>=0){dist.set(j,dist.get(i)+1);q.push(j)}}}
+  let maxd=0;
+  dist.forEach((d,i)=>{maxd=Math.max(maxd,d);setTimeout(()=>{els[i].classList.remove("pulse");void els[i].offsetWidth;els[i].classList.add("pulse")},d*70)});
+  await wait(maxd*70+150);
+  // 2) water climbs up the root column
+  const col=[rootI];for(let y=lv.rr-1;y>=0;y--)col.push(y*W+lv.rc);
+  for(const i of col){els[i].classList.add("flow","wet");tone(300+ (lv.rr-((i/W)|0))*60,.1,"sine",.05);await wait(160)}
+  await wait(200);
+  // 3) tree flies to center and blooms
+  const app=$("#app").getBoundingClientRect();
+  const src=$("#treeWrap").getBoundingClientRect();
+  const winEl=$("#win");
+  const fly=document.createElement("div");
+  fly.className="fly";
+  fly.innerHTML=$("#treeWrap").innerHTML;
+  fly.style.left=(src.left-app.left)+"px";fly.style.top=(src.top-app.top)+"px";fly.style.width=src.width+"px";
+  winEl.appendChild(fly);
+  $("#treeWrap").style.visibility="hidden";
+  winEl.classList.add("on");
+  const targetW=Math.min(app.width*.76,360), scale=targetW/src.width;
+  const tx=(app.width-targetW)/2-(src.left-app.left);
+  const ty=app.height*.40-(src.height*scale)/2-(src.top-app.top);
+  const anim=fly.animate([{transform:"translate(0,0) scale(1)"},{transform:`translate(${tx}px,${ty-30}px) scale(${scale*1.04})`,offset:.75},{transform:`translate(${tx}px,${ty}px) scale(${scale})`}],
+    {duration:1000,easing:"cubic-bezier(.5,0,.2,1)",fill:"forwards"});
+  await anim.finished.catch(()=>{});
+  const t=fly.querySelector(".tree");
+  t.classList.add("bloom"); sWin();
+  sparkle(app, targetW);
+  await wait(900);
+  leafRain(winEl);
+  // stars
+  const s=moves<=lv.par+2?3:moves<=lv.par*1.6+5?2:1;
+  document.querySelectorAll(".stars span").forEach((e,i)=>e.classList.toggle("on",i<s));
+  $("#winTitle").textContent=speciesFor(level).name+" Yeşerdi!";
+  $("#winSub").textContent=`${moves} hamlede · ${lv.sources.length} su kaynağı bağlandı`;
+  await wait(500);
+  winEl.classList.add("show");
+  $("#bNext").focus({preventScroll:true});
+}
+function sparkle(app,w){
+  const winEl=$("#win");
+  for(let i=0;i<28;i++){
+    const s=document.createElement("div");s.className="spark";
+    s.style.left=app.width/2+"px";s.style.top=app.height*.36+"px";
+    const a=Math.random()*Math.PI*2, d=w*.35+Math.random()*w*.35;
+    s.style.setProperty("--dx",Math.cos(a)*d+"px");s.style.setProperty("--dy",Math.sin(a)*d+"px");
+    s.style.animationDelay=Math.random()*.4+"s";
+    winEl.appendChild(s);setTimeout(()=>s.remove(),1600);
+  }
+}
+let rainT=null;
+function leafRain(winEl){
+  let n=0;
+  rainT=setInterval(()=>{
+    if(n++>40){clearInterval(rainT);return}
+    const f=document.createElement("div");f.className="fall";
+    f.style.left=Math.random()*100+"%";
+    f.style.background=["#7cc26a","#9bd67a","#5fae57","#ffc2d1"][n%4];
+    f.style.setProperty("--dx",(Math.random()-.5)*160+"px");f.style.setProperty("--r",(Math.random()*720-360)+"deg");
+    f.style.animationDuration=3+Math.random()*3+"s";
+    winEl.appendChild(f);setTimeout(()=>f.remove(),6500);
+  },120);
+}
+$("#bNext").onclick=()=>{
+  const winEl=$("#win");
+  clearInterval(rainT);
+  winEl.classList.remove("show","on");
+  setTimeout(()=>{winEl.querySelectorAll(".fly,.fall,.spark").forEach(e=>e.remove());$("#treeWrap").style.visibility=""},700);
+  load(level+1);
+};
+
+/* ---------------- menu ---------------- */
+const menu=$("#menu");
+$("#gear").onclick=e=>{e.stopPropagation();menu.hidden=!menu.hidden};
+document.addEventListener("pointerdown",e=>{if(!menu.hidden&&!menu.contains(e.target)&&e.target.closest("#gear")==null)menu.hidden=true});
+const soundLabel=()=>$("#mSound").textContent="Ses: "+(soundOn?"Açık":"Kapalı");
+soundLabel();
+$("#mSound").onclick=()=>{soundOn=!soundOn;store.set("kvs-sound",soundOn);soundLabel()};
+$("#mPrev").onclick=()=>{if(busy)return;menu.hidden=true;if(level>1)load(level-1)};
+$("#mNext").onclick=()=>{if(busy)return;menu.hidden=true;load(level+1)};
+
+addEventListener("resize",()=>lv&&layout());
+load(level);
+})();
+</script>
+</body>
+</html>
